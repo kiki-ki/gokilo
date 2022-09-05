@@ -3,23 +3,50 @@ package editor
 import (
 	"fmt"
 	"os"
+
+	"golang.org/x/sys/unix"
 )
 
 type Editor struct {
-	filePath string
-	keyChan  chan rune
-	cx       int
-	cy       int
-	rows     []*Row
-	terminal *Terminal
+	filePath   string
+	cx         int
+	cy         int
+	rows       []*row
+	screenRows int
+	screenCols int
+	Termios    *Termios
 }
 
 func NewEditor(filePath string) (*Editor, error) {
-	e := initEditor(filePath)
+	termios, err := newTermios()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := termios.EnableRawMode(); err != nil {
+		return nil, err
+	}
+
+	ws, err := getWindowSize()
+	if err != nil {
+		return nil, err
+	}
+
+	e := &Editor{
+		filePath:   filePath,
+		cx:         0,
+		cy:         0,
+		rows:       make([]*row, 0),
+		screenRows: int(ws.Row) - 2,
+		screenCols: int(ws.Col),
+		Termios:    termios,
+	}
 
 	fs, err := os.Stat(filePath)
 	if err != nil {
-		// loadEditor(filepath)
+		if er := e.loadFile(); err != nil {
+			return nil, er
+		}
 	}
 
 	if fs.IsDir() {
@@ -29,15 +56,24 @@ func NewEditor(filePath string) (*Editor, error) {
 	return e, nil
 }
 
-func initEditor(filePath string) *Editor {
-	e := &Editor{
-		filePath: filePath,
-		keyChan:  make(chan rune),
-		cx:       0,
-		cy:       0,
-		rows:     make([]*Row, 0),
-		terminal: newTerminal(),
+func (e *Editor) loadFile() error {
+	// bytes, err := ioutil.ReadFile(e.filePath)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// for _, b := range bytes {
+	// 	e.rows = append(e.rows)
+	// }
+
+	return nil
+}
+
+func getWindowSize() (*unix.Winsize, error) {
+	ws, err := unix.IoctlGetWinsize(int(os.Stdout.Fd()), unix.TIOCGWINSZ)
+	if err != nil {
+		return nil, err
 	}
 
-	return e
+	return ws, nil
 }

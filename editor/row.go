@@ -1,9 +1,9 @@
 package editor
 
-type Row struct {
+type row struct {
 	chars []rune
 }
 
-func NewRow() *Row {
-	return &Row{}
+func newRow() *row {
+	return &row{}
 }
