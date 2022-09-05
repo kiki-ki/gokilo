@@ -25,6 +25,7 @@ func run(filePath string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("%#v\n", e)
 
 	defer e.Termios.DisableRawMode()
 

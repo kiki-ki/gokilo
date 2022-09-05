@@ -42,15 +42,20 @@ func NewEditor(filePath string) (*Editor, error) {
 		Termios:    termios,
 	}
 
-	fs, err := os.Stat(filePath)
+	fs, err := os.Stat(e.filePath)
 	if err != nil {
-		if er := e.loadFile(); err != nil {
-			return nil, er
+		if os.IsNotExist(err) {
+			return e, nil
 		}
+		return nil, err
 	}
 
 	if fs.IsDir() {
 		return nil, fmt.Errorf("%s is a directory", fs.Name())
+	}
+
+	if err := e.loadFile(); err != nil {
+		return nil, err
 	}
 
 	return e, nil
