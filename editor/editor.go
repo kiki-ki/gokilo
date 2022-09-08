@@ -1,8 +1,10 @@
 package editor
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -15,6 +17,12 @@ type Editor struct {
 	screenRows int
 	screenCols int
 	Termios    *Termios
+	Status     *editorStatus
+}
+
+type editorStatus struct {
+	Msg  string
+	Time time.Time
 }
 
 func NewEditor(filePath string) (*Editor, error) {
@@ -40,7 +48,10 @@ func NewEditor(filePath string) (*Editor, error) {
 		screenRows: int(ws.Row) - 2,
 		screenCols: int(ws.Col),
 		Termios:    termios,
+		Status:     &editorStatus{},
 	}
+
+	e.setStatus("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find")
 
 	fs, err := os.Stat(e.filePath)
 	if err != nil {
@@ -62,16 +73,36 @@ func NewEditor(filePath string) (*Editor, error) {
 }
 
 func (e *Editor) loadFile() error {
-	// bytes, err := ioutil.ReadFile(e.filePath)
-	// if err != nil {
-	// 	return err
-	// }
+	fp, err := os.Open(e.filePath)
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
 
-	// for _, b := range bytes {
-	// 	e.rows = append(e.rows)
-	// }
+	sc := bufio.NewReader(fp)
+
+	for l, err := sc.ReadBytes(CodeLF); err == nil; l, err = sc.ReadBytes(CodeLF) {
+		for c := l[len(l)-1]; len(l) > 0 && (c == CodeLF || c == CodeCR); {
+			// ここから
+			l = l[:len(l)-1]
+			if len(l) > 0 {
+				c = l[len(l)-1]
+			}
+			e.insertRow(l)
+		}
+		fmt.Println(string(l))
+	}
 
 	return nil
+}
+
+func (e *Editor) insertRow(row []byte) {
+
+}
+
+func (e *Editor) setStatus(msgArgs ...interface{}) {
+	e.Status.Msg = fmt.Sprintf(msgArgs[0].(string), msgArgs[:1]...)
+	e.Status.Time = time.Now()
 }
 
 func getWindowSize() (*unix.Winsize, error) {

@@ -19,24 +19,24 @@ func newTermios() (*Termios, error) {
 	return &Termios{termios: termios}, nil
 }
 
-func (termios *Termios) EnableRawMode() error {
-	termios.termios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
-	termios.termios.Oflag &^= unix.OPOST
-	termios.termios.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
-	termios.termios.Cflag &^= unix.CSIZE | unix.PARENB
-	termios.termios.Cflag |= unix.CS8
-	termios.termios.Cc[unix.VMIN] = 1
-	termios.termios.Cc[unix.VTIME] = 0
+func (t *Termios) EnableRawMode() error {
+	t.termios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
+	t.termios.Oflag &^= unix.OPOST
+	t.termios.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
+	t.termios.Cflag &^= unix.CSIZE | unix.PARENB
+	t.termios.Cflag |= unix.CS8
+	t.termios.Cc[unix.VMIN] = 1
+	t.termios.Cc[unix.VTIME] = 0
 
-	if err := unix.IoctlSetTermios(int(os.Stdin.Fd()), unix.TIOCSETA, termios.termios); err != nil {
+	if err := unix.IoctlSetTermios(int(os.Stdin.Fd()), unix.TIOCSETA, t.termios); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (termios *Termios) DisableRawMode() error {
-	if err := unix.IoctlSetTermios(int(os.Stdin.Fd()), unix.TIOCSETA, termios.termios); err != nil {
+func (t *Termios) DisableRawMode() error {
+	if err := unix.IoctlSetTermios(int(os.Stdin.Fd()), unix.TIOCSETA, t.termios); err != nil {
 		return err
 	}
 
